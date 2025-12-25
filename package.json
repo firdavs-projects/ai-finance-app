@@ -1,0 +1,24 @@
+{
+  "name": "ai-finance-app",
+  "version": "1.0.0",
+  "description": "AI-powered personal finance management app",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "yarn workspace @ai-finance/backend dev & yarn workspace @ai-finance/frontend dev",
+    "dev:frontend": "yarn workspace @ai-finance/frontend dev",
+    "dev:backend": "yarn workspace @ai-finance/backend dev",
+    "build": "yarn workspaces foreach -Apt run build",
+    "build:frontend": "yarn workspace @ai-finance/frontend build",
+    "build:backend": "yarn workspace @ai-finance/backend build",
+    "lint": "yarn workspaces foreach -Apt run lint",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules yarn.lock"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "yarn": ">=1.22.0"
+  }
+}
