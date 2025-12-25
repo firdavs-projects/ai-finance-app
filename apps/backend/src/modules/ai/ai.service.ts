@@ -11,6 +11,7 @@ interface ParsedTransaction {
   currency: string;
   category: string;
   type: 'income' | 'expense';
+  accountName?: string; // Название счета из текста (опционально)
 }
 
 interface AiParseResult {
@@ -67,11 +68,18 @@ ${expenseCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n')
 ДОСТУПНЫЕ КАТЕГОРИИ ДОХОДОВ:
 ${incomeCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n') || '- Прочее (id: "general")'}
 
+ДОСТУПНЫЕ СЧЕТА:
+${accounts.map(a => `- ${(a as any).name} (type: "${(a as any).type}")`).join('\n')}
+
 ПРАВИЛА:
 1. Извлеки ВСЕ упомянутые покупки/доходы
 2. Определи сумму и валюту (смн/сомони/с = TJS, рубль = RUB, $ = USD)
 3. Подбери подходящую категорию по смыслу
-4. Если категория не подходит - используй первую доступную
+4. Определи счет по ключевым словам:
+   - "наличными", "наличка", "кеш", "cash" → найди счет типа "cash" или с названием "Наличные"
+   - "картой", "карта", "card", "безнал" → найди счет типа "card" или с названием содержащим "карта"
+   - если не указано - оставь accountName пустым (будет использован дефолтный)
+5. Если категория не подходит - используй первую доступную
 
 ФОРМАТ ОТВЕТА (строго JSON):
 {
@@ -81,7 +89,8 @@ ${incomeCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n') 
       "amount": число,
       "currency": "TJS",
       "categoryId": "id из списка выше",
-      "type": "expense"
+      "type": "expense",
+      "accountName": "название счета из списка выше ИЛИ null"
     }
   ],
   "needsClarification": false,
@@ -89,11 +98,17 @@ ${incomeCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n') 
 }
 
 ПРИМЕРЫ:
-Вход: "американо 22смн и чизкейк 15смн"
-Выход: 2 транзакции с type="expense", amounts=[22, 15], currency="TJS"
+Вход: "американо 22смн и чизкейк 15смн картой"
+Выход: 2 транзакции с type="expense", amounts=[22, 15], currency="TJS", accountName="Банковская карта"
 
-Вход: "зарплата 5000 сомони"
-Выход: 1 транзакция type="income", amount=5000, currency="TJS"
+Вход: "хлеб 25с наличными"
+Выход: 1 транзакция type="expense", amount=25, currency="TJS", accountName="Наличные"
+
+Вход: "зарплата 5000 сомони на карту"
+Выход: 1 транзакция type="income", amount=5000, currency="TJS", accountName="Банковская карта"
+
+Вход: "кофе 30смн"
+Выход: 1 транзакция type="expense", amount=30, currency="TJS", accountName=null (дефолтный счет)
 
 ВАЖНО: Всегда возвращай валидный JSON без дополнительного текста!`;
 
@@ -137,6 +152,21 @@ ${incomeCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n') 
       for (const t of parsed.transactions) {
         console.log('💾 Creating transaction:', t);
 
+        // Определяем счет: если AI распознал счет в тексте - ищем его, иначе используем дефолтный
+        let transactionAccountId = defaultAccountId;
+        if (t.accountName) {
+          const foundAccount = accounts.find(a =>
+            (a as any).name.toLowerCase().includes(t.accountName!.toLowerCase()) ||
+            (a as any).type === this.mapAccountNameToType(t.accountName!)
+          );
+          if (foundAccount) {
+            transactionAccountId = (foundAccount as any)._id.toString();
+            console.log(`✅ Account matched: "${t.accountName}" → "${(foundAccount as any).name}" (${transactionAccountId})`);
+          } else {
+            console.log(`⚠️ Account "${t.accountName}" not found, using default`);
+          }
+        }
+
         // Fallback для categoryId: используем первую доступную категорию нужного типа
         let categoryId = (t as any).categoryId || t.category;
         if (!categoryId) {
@@ -150,7 +180,7 @@ ${incomeCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n') 
           amount: t.amount,
           currency: t.currency || 'TJS',
           categoryId: categoryId,
-          accountId: defaultAccountId,
+          accountId: transactionAccountId,
           description: t.description,
         });
         createdTransactions.push(transaction);
@@ -197,6 +227,38 @@ ${incomeCategories.map(c => `- ${c.name} (id: "${(c as any)._id}")`).join('\n') 
         details: process.env.NODE_ENV === 'development' ? error.message : undefined,
       };
     }
+  }
+
+  /**
+   * Маппинг ключевых слов из текста к типам счетов
+   */
+  private mapAccountNameToType(accountName: string): string | null {
+    const lowerName = accountName.toLowerCase();
+
+    // Наличные
+    if (lowerName.includes('наличн') || lowerName.includes('кеш') ||
+        lowerName.includes('cash') || lowerName.includes('наличка')) {
+      return 'cash';
+    }
+
+    // Карта
+    if (lowerName.includes('карт') || lowerName.includes('card') ||
+        lowerName.includes('безнал')) {
+      return 'card';
+    }
+
+    // Банк
+    if (lowerName.includes('банк') || lowerName.includes('bank')) {
+      return 'bank';
+    }
+
+    // Накопления
+    if (lowerName.includes('накопл') || lowerName.includes('saving') ||
+        lowerName.includes('копил')) {
+      return 'savings';
+    }
+
+    return null;
   }
 
   /**

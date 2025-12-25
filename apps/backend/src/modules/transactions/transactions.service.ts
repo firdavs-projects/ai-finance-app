@@ -29,16 +29,12 @@ export class TransactionsService {
     return this.transactionModel
       .find()
       .sort({ date: -1 })
-      .populate('categoryId')
-      .populate('accountId')
       .exec();
   }
 
   async findOne(id: string): Promise<Transaction> {
     const transaction = await this.transactionModel
       .findById(id)
-      .populate('categoryId')
-      .populate('accountId')
       .exec();
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
