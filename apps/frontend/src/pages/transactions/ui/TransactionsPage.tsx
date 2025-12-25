@@ -19,7 +19,7 @@ export function TransactionsPage() {
 
   const getAccountName = (id: string) => {
     const account = accounts.find(a => a.id === id)
-    return account ? `${account.icon} ${account.name}` : id
+    return account ? `${account.icon || ''} ${account.name}` : 'Неизвестный счет'
   }
 
   const handleDelete = async (id: string) => {

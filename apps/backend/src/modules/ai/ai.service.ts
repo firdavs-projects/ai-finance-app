@@ -44,6 +44,13 @@ export class AiService {
   }
 
   async parseAndCreateTransactions(text: string, accountId?: string) {
+    // Проверяем флаг MOCK режима
+    const isMockMode = this.configService.get<string>('OPENAI_MOCK_MODE') === 'true';
+    if (isMockMode) {
+      console.log('🧪 MOCK MODE ENABLED - using mockParseAndCreate');
+      return this.mockParseAndCreate(text, accountId);
+    }
+
     const categories = await this.categoriesService.findAll();
     const accounts = await this.accountsService.findAll();
 

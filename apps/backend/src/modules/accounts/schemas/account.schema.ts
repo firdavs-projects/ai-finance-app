@@ -3,7 +3,17 @@ import { Document } from 'mongoose';
 
 export type AccountDocument = Account & Document;
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: true,
+  toJSON: {
+    transform: (_doc: any, ret: any) => {
+      ret.id = ret._id.toString();
+      delete ret._id;
+      delete ret.__v;
+      return ret;
+    },
+  },
+})
 export class Account {
   @Prop({ required: true })
   name: string;
