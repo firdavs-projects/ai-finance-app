@@ -1,22 +1,28 @@
 // Transaction Types
-export type TransactionType = 'income' | 'expense' | 'transfer';
+export type TransactionType = 'income' | 'expense' | 'transfer' | 'debt';
+
+export type DebtSubType = 'i_gave' | 'i_returned' | 'they_gave' | 'they_returned';
 
 export interface Transaction {
   id: string;
   type: TransactionType;
   amount: number;
   currency: string;
-  categoryId: string;
+  categoryId?: string;
   accountId: string;
-  toAccountId?: string; // for transfers
+  accountToId?: string; // for transfers
   description?: string;
+  place?: string;
+  person?: string;
+  comment?: string;
+  debtSubType?: DebtSubType;
   date: Date;
   createdAt: Date;
   updatedAt?: Date;
 }
 
 // Account Types
-export type AccountType = 'cash' | 'card' | 'bank' | 'savings';
+export type AccountType = 'cash' | 'card' | 'bank' | 'savings' | 'debt';
 
 export interface Account {
   id: string;
@@ -26,6 +32,9 @@ export interface Account {
   currency: string;
   color?: string;
   icon?: string;
+  isDebt?: boolean;
+  isHidden?: boolean;
+  debtPerson?: string;
 }
 
 // Category Types

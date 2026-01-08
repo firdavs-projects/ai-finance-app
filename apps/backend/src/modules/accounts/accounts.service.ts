@@ -61,6 +61,76 @@ export class AccountsService implements OnModuleInit {
     return account;
   }
 
+  // Получить только обычные счета (не долговые)
+  async getRegularAccounts(): Promise<Account[]> {
+    return this.accountModel.find({ isDebt: { $ne: true } }).exec();
+  }
+
+  // Получить только долговые счета
+  async getDebtAccounts(): Promise<Account[]> {
+    return this.accountModel.find({ isDebt: true }).exec();
+  }
+
+  // Создать долговой счет для человека
+  async createDebtAccount(personName: string, initialBalance: number = 0, currency: string = 'TJS'): Promise<Account> {
+    const accountData = {
+      name: personName,
+      type: 'debt',
+      balance: initialBalance,
+      currency: currency,
+      icon: '📝',
+      isDebt: true,
+      isHidden: false,
+      debtPerson: personName,
+    };
+    const account = new this.accountModel(accountData);
+    return account.save();
+  }
+
+  // Найти или создать долговой счет для человека
+  async findOrCreateDebtAccount(personName: string, currency: string = 'TJS'): Promise<Account> {
+    // Ищем существующий долговой счет для этого человека
+    const existingAccount = await this.accountModel.findOne({
+      isDebt: true,
+      debtPerson: personName,
+    }).exec();
+
+    if (existingAccount) {
+      return existingAccount;
+    }
+
+    // Если не найден - создаем новый
+    return this.createDebtAccount(personName, 0, currency);
+  }
+
+  // Закрыть долг (скрыть счет)
+  async closeDebt(accountId: string): Promise<Account> {
+    const account = await this.accountModel.findById(accountId).exec();
+    if (!account) {
+      throw new NotFoundException(`Account with ID ${accountId} not found`);
+    }
+    if (!account.isDebt) {
+      throw new NotFoundException(`Account ${accountId} is not a debt account`);
+    }
+
+    account.isHidden = true;
+    return account.save();
+  }
+
+  // Открыть долг (показать счет)
+  async reopenDebt(accountId: string): Promise<Account> {
+    const account = await this.accountModel.findById(accountId).exec();
+    if (!account) {
+      throw new NotFoundException(`Account with ID ${accountId} not found`);
+    }
+    if (!account.isDebt) {
+      throw new NotFoundException(`Account ${accountId} is not a debt account`);
+    }
+
+    account.isHidden = false;
+    return account.save();
+  }
+
   async updateBalance(id: string, amount: number): Promise<Account> {
     const account = await this.accountModel
       .findByIdAndUpdate(

@@ -3,26 +3,40 @@ import { baseApi, ApiTags, ApiMethods, ApiEndpoints, getUrl } from '@shared/api'
 export interface Account {
   id: string
   name: string
-  type: 'cash' | 'card' | 'bank' | 'savings'
+  type: 'cash' | 'card' | 'bank' | 'savings' | 'debt'
   balance: number
   currency: string
   color?: string
   icon?: string
+  isDebt?: boolean
+  isHidden?: boolean
+  debtPerson?: string
 }
 
 export interface CreateAccountDto {
   name: string
-  type: 'cash' | 'card' | 'bank' | 'savings'
+  type: 'cash' | 'card' | 'bank' | 'savings' | 'debt'
   balance?: number
   currency?: string
   color?: string
   icon?: string
+  isDebt?: boolean
+  isHidden?: boolean
+  debtPerson?: string
 }
 
 export const accountsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAccounts: builder.query<Account[], void>({
       query: () => ApiEndpoints.ACCOUNTS,
+      providesTags: [ApiTags.ACCOUNTS],
+    }),
+    getRegularAccounts: builder.query<Account[], void>({
+      query: () => '/accounts/regular/list',
+      providesTags: [ApiTags.ACCOUNTS],
+    }),
+    getDebtAccounts: builder.query<Account[], void>({
+      query: () => '/accounts/debts/list',
       providesTags: [ApiTags.ACCOUNTS],
     }),
     getAccount: builder.query<Account, string>({
@@ -45,6 +59,20 @@ export const accountsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: ApiTags.ACCOUNTS, id }, ApiTags.ACCOUNTS],
     }),
+    closeDebt: builder.mutation<Account, string>({
+      query: (id) => ({
+        url: `/accounts/${id}/close-debt`,
+        method: ApiMethods.PATCH,
+      }),
+      invalidatesTags: [ApiTags.ACCOUNTS],
+    }),
+    reopenDebt: builder.mutation<Account, string>({
+      query: (id) => ({
+        url: `/accounts/${id}/reopen-debt`,
+        method: ApiMethods.PATCH,
+      }),
+      invalidatesTags: [ApiTags.ACCOUNTS],
+    }),
     deleteAccount: builder.mutation<void, string>({
       query: (id) => ({
         url: getUrl(ApiEndpoints.ACCOUNT_BY_ID, { id }),
@@ -57,9 +85,13 @@ export const accountsApi = baseApi.injectEndpoints({
 
 export const {
   useGetAccountsQuery,
+  useGetRegularAccountsQuery,
+  useGetDebtAccountsQuery,
   useGetAccountQuery,
   useCreateAccountMutation,
   useUpdateAccountMutation,
+  useCloseDebtMutation,
+  useReopenDebtMutation,
   useDeleteAccountMutation,
 } = accountsApi
 

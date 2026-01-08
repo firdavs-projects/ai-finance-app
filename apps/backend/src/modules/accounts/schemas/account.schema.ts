@@ -32,6 +32,15 @@ export class Account {
 
   @Prop()
   color?: string;
+
+  @Prop({ default: false })
+  isDebt?: boolean;
+
+  @Prop({ default: false })
+  isHidden?: boolean;
+
+  @Prop()
+  debtPerson?: string;
 }
 
 export const AccountSchema = SchemaFactory.createForClass(Account);

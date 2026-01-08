@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAccountDto {
@@ -6,9 +6,9 @@ export class CreateAccountDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ enum: ['cash', 'card', 'bank', 'savings'] })
-  @IsEnum(['cash', 'card', 'bank', 'savings'])
-  type: 'cash' | 'card' | 'bank' | 'savings';
+  @ApiProperty({ enum: ['cash', 'card', 'bank', 'savings', 'debt'] })
+  @IsEnum(['cash', 'card', 'bank', 'savings', 'debt'])
+  type: 'cash' | 'card' | 'bank' | 'savings' | 'debt';
 
   @ApiProperty({ example: 0, required: false })
   @IsNumber()
@@ -29,5 +29,20 @@ export class CreateAccountDto {
   @IsString()
   @IsOptional()
   icon?: string;
+
+  @ApiProperty({ required: false, description: 'Флаг долгового счета' })
+  @IsBoolean()
+  @IsOptional()
+  isDebt?: boolean;
+
+  @ApiProperty({ required: false, description: 'Флаг скрытого счета' })
+  @IsBoolean()
+  @IsOptional()
+  isHidden?: boolean;
+
+  @ApiProperty({ required: false, description: 'Имя человека для долгового счета' })
+  @IsString()
+  @IsOptional()
+  debtPerson?: string;
 }
 
